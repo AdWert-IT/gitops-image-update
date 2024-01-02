@@ -42,7 +42,7 @@ jobs:
 
         steps:
             - name: GitOps - Update Image Tag
-                uses: adwert-it/gitops-image-update@main
+                uses: adwert-it/gitops-image-update@v1
                 with:
                     REPOSITORY_NAME: 'AdWert-IT/infrastructure'
                     ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
