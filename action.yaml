@@ -1,0 +1,58 @@
+name: "GitOps: Update Image Tag"
+description: "Updates the Image Tag in a GitOps repository."
+branding:
+  icon: "package"
+  color: "blue"
+
+inputs:
+  REPOSITORY_NAME:
+    description: 'URL of the GitOps repository e.g. "adwert-it/infrastructure"'
+    required: true
+  BRANCH:
+    description: 'Branch of the GitOps repository e.g. "main"'
+    required: true
+    default: "main"
+  VALUES_FILE_PATH:
+    description: 'Path to the values file in the GitOps repository e.g. "./deployments/helmCharts/projects/AdWert-IT/values.yaml"'
+    required: true
+  VALUE_NAME:
+    description: 'Name of the value in the values file e.g. "frontendImageSHA"'
+    required: true
+  TAG:
+    description: "Name of the Image Tag e.g. 'v1.0.0' or 'e0f9a8b'"
+    required: true
+  USERNAME:
+    description: "Username for the GitOps repository. Defaults to the GITHUB_ACTOR."
+    required: true
+    default: ${{ github.actor }}
+  ACCESS_TOKEN:
+    description: "(Personal) Access Token for the GitOps repository. Defaults to the GITHUB_TOKEN."
+    required: true
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout Repository
+      run: |
+        REPOSITORY_URL=https://${{ inputs.USERNAME }}:${{ inputs.ACCESS_TOKEN }}@github.com/${{ inputs.REPOSITORY_NAME }}.git
+        git clone --depth 1 ${REPOSITORY_URL} --branch ${{ inputs.BRANCH }} --single-branch  ./repository
+        cd ./repository
+      shell: bash
+
+    - name: Update Tag
+      working-directory: ./repository
+      run: |
+        sed -i 's/${{ inputs.VALUE_NAME }}: .*$/${{ inputs.VALUE_NAME }}: "'${{ inputs.TAG }}'"/g' ${{ inputs.VALUES_FILE_PATH }}
+      shell: bash
+
+    - name: Commit & Push
+      working-directory: ./repository
+      run: |
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor }}@users.noreply.github.com"
+        git add .
+        git commit --allow-empty -m "Update revision of '${{ inputs.VALUE_NAME }}'' to ${{ inputs.TAG }}"
+        git pull --rebase
+        git push
+      shell: bash
